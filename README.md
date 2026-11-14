@@ -5,7 +5,9 @@ A camera-based patient monitor on QNX 8.0, for the QNX Global Hackathon (Robotic
 
 > **Research prototype. Not a medical device.** It has not been validated and must not be used for clinical decisions or in place of a contact monitor.
 
-The monitor estimates heart rate, heart rate variability, breathing rate, real time blood pressure and body temperature from up to nine cameras during a long treatment session. It warns the operator early, on the trend and the projected treatment time to a limit, so the dose rate can be lowered before the patient has to stop. It only advises; it never changes the dose.  It can predict the maximum dose rate the patient can handle based on age and 'Health'.
+The monitor estimates heart rate, heart rate variability, breathing rate and body temperature from up to nine cameras, and real-time blood pressure from a contact sensor (simulated in the demo), during a long treatment session. It warns the operator early, on the trend and the projected time to a limit, so the dose rate can be lowered before the patient has to stop. It only advises; it never changes the dose.
+
+Before the session it offers a conservative starting estimate of the dose rate from age and a health score. The live trend overrules it once the session is under way. It is not a safe maximum.
 
 Work in progress. The build skeleton and `vm-core --selftest` run on Linux and QNX 8.0 today.
 
