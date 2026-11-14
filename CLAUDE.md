@@ -77,12 +77,17 @@ tests/
 
 ## Status on November 14, 2026
 
-Nothing is built yet. This folder was seeded with the plan only.
+Done Nov 14:
 
-Next steps, in order:
+- Repository at github.com/sharpshooter777/i-am-healthy, Apache-2.0. Commits use Dale's GitHub noreply address, set in this repository's git config.
+- This laptop's SSH key logs in to the QNX VM.
+- Development packages installed in the VM (Qt 6.10 with qmake6, Eigen, doctest, FFmpeg and Sensor Framework headers).
+- CMake skeleton with the four presets. `vm-core --selftest` and the unit tests pass on Linux and in the QNX VM (`scripts/qnx-selftest.sh`). The `qnx-aarch64le` build compiles; `win-msvc` is not yet tried on the Windows PC.
 
-1. Run git init, set the git identity, and add the Apache-2.0 LICENSE file.
-2. Give this laptop its own SSH key for the QNX VM (see `ENVIRONMENT.md`).
-3. Done Nov 14: the development packages are installed in the VM (Qt 6.10 with qmake6, Eigen, doctest, FFmpeg and Sensor Framework headers).
-4. Create the CMake skeleton with the four presets and a `vm-core --selftest` that passes on Linux and in the QNX VM.
-5. Then follow the week 1 goals in `PLAN.md`.
+Build notes:
+
+- Use SDP 8.0.5: `source ~/qnx805/qnxsdp-env.sh` before the QNX presets.
+- The QNX toolchain defines `_QNX_SOURCE`, and doctest is built with `DOCTEST_CONFIG_USE_STD_HEADERS`; both are needed for the SDP's libc++ under strict C++17.
+- `cc: warning - lang-c++ is deprecated` comes from CMake's QCC support and is harmless.
+
+Next: try `win-msvc` on the Windows PC, install Qt 6.10 on this laptop, then follow the week 1 goals in `PLAN.md`.

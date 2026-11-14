@@ -1,0 +1,9 @@
+i-am-healthy
+Copyright 2026 Dale Robinson
+
+This product includes software developed by third parties:
+
+doctest 2.4.12 (third_party/doctest/)
+  Copyright (c) 2016-2023 Viktor Kirilov
+  MIT License; full text in third_party/doctest/LICENSE.txt
+  Used only to build the unit tests.

@@ -1,0 +1,73 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux, GCC, Ninja",
+      "inherits": "base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "win-msvc",
+      "displayName": "Windows, MSVC 2022, x64",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "qnx-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja",
+      "environment": {
+        "QNX_HOST": "$penv{QNX_HOST}",
+        "QNX_TARGET": "$penv{QNX_TARGET}"
+      }
+    },
+    {
+      "name": "qnx-x86_64",
+      "displayName": "QNX 8.0, x86_64 (QEMU VM, bare metal)",
+      "inherits": "qnx-base",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/qnx-x86_64.cmake"
+    },
+    {
+      "name": "qnx-aarch64le",
+      "displayName": "QNX 8.0, aarch64le (Raspberry Pi 5)",
+      "inherits": "qnx-base",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/qnx-aarch64le.cmake"
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-gcc", "configurePreset": "linux-gcc" },
+    { "name": "win-msvc", "configurePreset": "win-msvc", "configuration": "RelWithDebInfo" },
+    { "name": "qnx-x86_64", "configurePreset": "qnx-x86_64" },
+    { "name": "qnx-aarch64le", "configurePreset": "qnx-aarch64le" }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-gcc",
+      "configurePreset": "linux-gcc",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "win-msvc",
+      "configurePreset": "win-msvc",
+      "configuration": "RelWithDebInfo",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
