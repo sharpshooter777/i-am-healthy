@@ -1,0 +1,8 @@
+# Private planning material: network addresses, machine details. Never commit.
+docs/private/
+
+# Build output
+build/
+out/
+*.user
+.vscode/
