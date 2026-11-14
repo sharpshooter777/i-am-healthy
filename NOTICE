@@ -7,3 +7,13 @@ doctest 2.4.12 (third_party/doctest/)
   Copyright (c) 2016-2023 Viktor Kirilov
   MIT License; full text in third_party/doctest/LICENSE.txt
   Used only to build the unit tests.
+
+pocketfft, C++ header-only version (third_party/pocketfft/)
+  From github.com/mreineck/pocketfft, branch cpp, commit 4d865cba24359b05b37da4e75aee24498c3b78e7
+  Copyright (C) 2010-2024 Max-Planck-Society
+  Copyright (C) 2019-2020 Peter Bell
+  Copyright (C) 2003, 2007-14 Matteo Frigo and Massachusetts Institute of Technology (odd-sized DCT-IV)
+  Copyright (C) 2024 Tan Ping Liang, Peter Bell (prev_good_size search)
+  Copyright (C) 2024 Cris Luengo (integer overflow safeguards)
+  BSD 3-Clause License; full text in third_party/pocketfft/LICENSE.md
+  Used for the spectral analysis in core/src/spectrum.cpp.

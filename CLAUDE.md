@@ -90,4 +90,14 @@ Build notes:
 - The QNX toolchain defines `_QNX_SOURCE`, and doctest is built with `DOCTEST_CONFIG_USE_STD_HEADERS`; both are needed for the SDP's libc++ under strict C++17.
 - `cc: warning - lang-c++ is deprecated` comes from CMake's QCC support and is harmless.
 
-Next: try `win-msvc` on the Windows PC, install Qt 6.10 on this laptop, then follow the week 1 goals in `PLAN.md`.
+- Week 1 started: `core/` has resampling, a pocketfft spectrum, region colour mean, POS pulse extraction and a sliding-window `PulseTracker`. `sources/` has the `FrameSource` interface, a synthetic face camera carrying true heart rate, and the `.vmrec` recording format with writer and replay reader. `tools/vm-offline` makes and analyses recordings. All tests pass on Linux and in the QNX VM.
+- The synthetic camera is easy: whole-patch averaging recovers the rate down to about a tenth of the assumed pulse strength. Real and rendered cameras will be much harder.
+
+Next, for week 1:
+
+1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.
+2. `vm-core` as a resource manager serving `/dev/vitals/patient0/hr`.
+3. Split the pipeline into `vm-capture` and `vm-dsp` and feed it from a recording, aiming for the week 1 exit test (`cat /dev/vitals/patient0/hr` within 3 bpm of truth).
+4. Isaac Sim frame server for one camera, on the simulation host.
+
+Also outstanding: try `win-msvc` on the Windows PC; install Qt 6.10 on this laptop.

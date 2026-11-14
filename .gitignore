@@ -6,3 +6,6 @@ build/
 out/
 *.user
 .vscode/
+
+# Recorded sessions are large and may hold video of people; never commit them.
+*.vmrec

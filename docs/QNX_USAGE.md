@@ -13,7 +13,7 @@ Target: QNX 8.0, built with QNX SDP 8.0.5. Tested on the QNX Developer Desktop u
 | `cmake/toolchains/qnx-aarch64le.cmake` | Compiler variant `gcc_ntoaarch64le` |
 | `CMakePresets.json` | Presets `qnx-x86_64` and `qnx-aarch64le` |
 | `platform/CMakeLists.txt` | Builds `platform/src/qnx/` when the target is QNX |
-| `scripts/qnx-selftest.sh` | Copies a QNX build to a target over SSH and runs the tests there |
+| `scripts/qnx-selftest.sh` | Copies a QNX build to a target over SSH and runs the unit tests, `vm-core --selftest`, and a synthetic recording through `vm-offline` |
 
 ## Runtime
 
@@ -35,6 +35,8 @@ vm-core 0.1.0 self-test
   ...
 self-test passed
 ```
+
+The signal processing in `core/` and the frame sources in `sources/` are portable C++17 and use no QNX-specific calls; they are built for QNX with the toolchain above and tested on the target.
 
 ## Planned
 

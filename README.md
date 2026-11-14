@@ -9,18 +9,27 @@ The monitor estimates heart rate, heart rate variability, breathing rate and bod
 
 Before the session it offers a conservative starting estimate of the dose rate from age and a health score. The live trend overrules it once the session is under way. It is not a safe maximum.
 
-Work in progress. The build skeleton and `vm-core --selftest` run on Linux and QNX 8.0 today.
+Work in progress. Today, on Linux and QNX 8.0: the build, `vm-core --selftest`, and heart rate measured from a synthetic camera recording and compared with its true values.
+
+```sh
+vm-offline synth session.vmrec --seconds 60 --hr 75 --slope 3
+vm-offline analyse session.vmrec --limit 100
+```
+
+The synthetic camera is a stand-in for the simulated patient, and its accuracy says little about real cameras.
 
 ## Layout
 
 ```text
 core/       pure C++17: signal processing, fusion, alarm and trend logic; no OS calls
 platform/   OS services behind one interface: qnx/, posix/, win32/
+sources/    frame sources: synthetic camera, recorded-session replay
 services/   pipeline processes (vm-core so far)
+tools/      desk tools: vm-offline makes and analyses recordings
 tests/      unit tests, run on every platform
 cmake/      QNX toolchain files
 scripts/    helpers, such as running the tests on a QNX target
-third_party/ vendored permissively licensed code (doctest)
+third_party/ vendored permissively licensed code (doctest, pocketfft)
 ```
 
 ## Building

@@ -27,7 +27,9 @@ endfunction()
 
 add_subdirectory(core)
 add_subdirectory(platform)
+add_subdirectory(sources)
 add_subdirectory(services)
+add_subdirectory(tools)
 
 if(VITALS_BUILD_TESTS)
     enable_testing()
