@@ -58,7 +58,7 @@ ctest --preset linux-gcc
 
 There are three Windows presets. Pick the one that matches the compiler you have.
 
-`win-msvc-ninja` uses whichever MSVC the prompt provides, so it works with Visual Studio 2022 and 2026. Run it from an "x64 Native Tools Command Prompt", with Ninja on the `PATH`. Tested with Visual Studio 2026 (MSVC 19.52).
+`win-msvc-ninja` uses whichever MSVC the prompt provides, so it works with Visual Studio 2022 and 2026. Run it from an "x64 Native Tools Command Prompt", with Ninja on the `PATH`. Tested with Visual Studio 2026 (MSVC 19.52) and Visual Studio 2022 (MSVC 19.44).
 
 ```bat
 cmake --preset win-msvc-ninja
