@@ -2,8 +2,13 @@
 // Windows implementation.
 #include "vitals/platform/platform.hpp"
 
+// MinGW's libstdc++ already defines NOMINMAX, so only define what is missing.
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 
 namespace vitals::platform {

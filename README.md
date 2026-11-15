@@ -9,7 +9,7 @@ The monitor estimates heart rate, heart rate variability, breathing rate and bod
 
 Before the session it offers a conservative starting estimate of the dose rate from age and a health score. The live trend overrules it once the session is under way. It is not a safe maximum.
 
-Work in progress. Today, on Linux and QNX 8.0: the build, `vm-core --selftest`, and heart rate measured from a synthetic camera recording and compared with its true values.
+Work in progress. Today, on Linux, Windows and QNX 8.0: the build, `vm-core --selftest`, and heart rate measured from a synthetic camera recording and compared with its true values.
 
 ```sh
 vm-offline synth session.vmrec --seconds 60 --hr 75 --slope 3
@@ -39,7 +39,9 @@ Requires CMake 3.25 or newer and a C++17 compiler.
 | Preset | Host | Target |
 | --- | --- | --- |
 | `linux-gcc` | Linux | Linux, GCC and Ninja |
-| `win-msvc` | Windows | Windows, Visual Studio 2022, x64 |
+| `win-msvc` | Windows | Windows, Visual Studio 2022 generator, x64 |
+| `win-msvc-ninja` | Windows | Windows, MSVC from the open developer prompt (Visual Studio 2022 or 2026), Ninja |
+| `win-mingw` | Windows | Windows, MinGW-w64 GCC and Ninja |
 | `qnx-x86_64` | Linux or Windows with the QNX SDP | QNX 8.0 x86_64: the QEMU Developer Desktop or a PC |
 | `qnx-aarch64le` | Linux or Windows with the QNX SDP | QNX 8.0 aarch64le: Raspberry Pi 5 |
 
@@ -54,12 +56,30 @@ ctest --preset linux-gcc
 
 ### Windows
 
-From a Developer Command Prompt for Visual Studio 2022:
+There are three Windows presets. Pick the one that matches the compiler you have.
+
+`win-msvc-ninja` uses whichever MSVC the prompt provides, so it works with Visual Studio 2022 and 2026. Run it from an "x64 Native Tools Command Prompt", with Ninja on the `PATH`. Tested with Visual Studio 2026 (MSVC 19.52).
+
+```bat
+cmake --preset win-msvc-ninja
+cmake --build --preset win-msvc-ninja
+ctest --preset win-msvc-ninja
+```
+
+`win-msvc` uses the Visual Studio 2022 generator and needs Visual Studio 2022 installed.
 
 ```bat
 cmake --preset win-msvc
 cmake --build --preset win-msvc
 ctest --preset win-msvc
+```
+
+`win-mingw` uses MinGW-w64 GCC. Put `g++`, `ninja` and `cmake` on the `PATH` first; the MinGW `bin` folder must stay on the `PATH` to run the programs. Tested with GCC 13.1.0, the MinGW that the Qt installer provides.
+
+```bat
+cmake --preset win-mingw
+cmake --build --preset win-mingw
+ctest --preset win-mingw
 ```
 
 ### QNX 8.0

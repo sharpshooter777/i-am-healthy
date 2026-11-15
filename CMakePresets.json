@@ -29,6 +29,26 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     {
+      "name": "win-msvc-ninja",
+      "displayName": "Windows, MSVC from a developer prompt (VS 2022 or 2026), Ninja",
+      "inherits": "base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "win-mingw",
+      "displayName": "Windows, MinGW-w64 GCC, Ninja",
+      "inherits": "base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
       "name": "qnx-base",
       "hidden": true,
       "inherits": "base",
@@ -54,6 +74,8 @@
   "buildPresets": [
     { "name": "linux-gcc", "configurePreset": "linux-gcc" },
     { "name": "win-msvc", "configurePreset": "win-msvc", "configuration": "RelWithDebInfo" },
+    { "name": "win-msvc-ninja", "configurePreset": "win-msvc-ninja" },
+    { "name": "win-mingw", "configurePreset": "win-mingw" },
     { "name": "qnx-x86_64", "configurePreset": "qnx-x86_64" },
     { "name": "qnx-aarch64le", "configurePreset": "qnx-aarch64le" }
   ],
@@ -67,6 +89,16 @@
       "name": "win-msvc",
       "configurePreset": "win-msvc",
       "configuration": "RelWithDebInfo",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "win-msvc-ninja",
+      "configurePreset": "win-msvc-ninja",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "win-mingw",
+      "configurePreset": "win-mingw",
       "output": { "outputOnFailure": true }
     }
   ]
