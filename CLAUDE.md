@@ -58,7 +58,7 @@ tests/
 
 ## Conventions
 
-- C++17 and CMake with presets: `win-msvc`, `linux-gcc`, `qnx-x86_64`, `qnx-aarch64le`.
+- C++17 and CMake with presets: `linux-gcc`, `qnx-x86_64`, `qnx-aarch64le`, and on Windows `win-msvc-ninja` (MSVC from a developer prompt, VS 2022 or 2026), `win-mingw` and `win-msvc` (VS 2022 generator).
 - `core/` depends only on the standard library and header-only maths. Its unit tests run on every platform.
 - `platform/` is the only place for `#ifdef`. QNX uses native message passing; Linux and Windows use local sockets behind the same interface.
 - The interface is a client of the pipeline over a socket, so it can run on another machine.
@@ -82,7 +82,7 @@ Done Nov 14:
 - Repository at github.com/sharpshooter777/i-am-healthy, Apache-2.0. Commits use Dale's GitHub noreply address, set in this repository's git config.
 - This laptop's SSH key logs in to the QNX VM.
 - Development packages installed in the VM (Qt 6.10 with qmake6, Eigen, doctest, FFmpeg and Sensor Framework headers).
-- CMake skeleton with the four presets. `vm-core --selftest` and the unit tests pass on Linux and in the QNX VM (`scripts/qnx-selftest.sh`). The `qnx-aarch64le` build compiles; `win-msvc` is not yet tried on the Windows PC.
+- CMake skeleton with the four presets. `vm-core --selftest` and the unit tests pass on Linux and in the QNX VM (`scripts/qnx-selftest.sh`). The `qnx-aarch64le` build compiles. On the Windows PC, `win-msvc-ninja` (VS 2026 with MSVC 19.52, and VS 2022 with MSVC 19.44) and `win-mingw` (GCC 13.1.0) pass all six tests; `win-msvc` needs VS 2022 and is untested.
 
 Build notes:
 
@@ -100,4 +100,4 @@ Next, for week 1:
 3. Split the pipeline into `vm-capture` and `vm-dsp` and feed it from a recording, aiming for the week 1 exit test (`cat /dev/vitals/patient0/hr` within 3 bpm of truth).
 4. Isaac Sim frame server for one camera, on the simulation host.
 
-Also outstanding: try `win-msvc` on the Windows PC; install Qt 6.10 on this laptop.
+Also outstanding: install Qt 6.10 on this laptop.
