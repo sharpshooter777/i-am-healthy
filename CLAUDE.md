@@ -24,6 +24,17 @@ A monitor that estimates heart rate, heart rate variability, breathing rate and 
 - An abrupt jump with no dose change is a check-the-patient alert, not a dose advisory.
 - The advisory must be readable from the treatment chair. An unacknowledged alarm goes on to a second person.
 - Blood pressure is a fifth sign, from a contact sensor. Simulate it in the demo; a real device comes after the hackathon.
+- Dose-ceiling estimate, in `vm-core`: before the session, show a predicted ceiling from age and a health score as an opaque level with a range. It starts conservative, the live trend overrules it once dosing starts, and it is never presented as a safe maximum. For the hackathon its model and numbers are invented. It is week 3 work and the first thing cut if time runs short.
+- Blinking and drowsiness: eye openness from face landmarks gives blink rate, blink duration and the share of each minute the eyes are closed. Long eye closures together with a dropping head and slowing breathing raise a "may be falling asleep" advisory.
+- If time runs short, cut in this order: dose-ceiling estimate, thermal channel, near-infrared camera, heart rate variability, then live nine-camera rendering in favour of replayed recordings.
+
+## Cameras
+
+- Main face camera: Razer Kiyo Pro, 1080p at 60 fps uncompressed over USB 3. For a session, set exposure, white balance and focus to manual and turn HDR off, because automatic adjustments look like a pulse. Analyse the live stream and store a compressed copy.
+- On older Linux kernels the Kiyo Pro can stall the USB controller; the boot option `usbcore.quirks=1532:0e05:k` fixes it. It is untested on QNX 8.0. If it fails there, a Linux or Windows machine captures and sends frames to QNX over the network.
+- QNX's camera samples are cloned outside the repository, in `~/qnx-samples/`. They are reference only: write our own code in `platform/qnx/` and `services/`. `camera_example1_callback` is the starting point for `vm-capture`.
+- If code is adapted from a sample, keep QNX's copyright line in that file and add the sample and its licence (Apache-2.0) to `NOTICE`. Never copy `ai-camera-app/styleImages/`, which includes share-alike images.
+- The samples do not show where frame timestamps come from. Find out early, because heart rate variability needs the capture time of every frame.
 
 ## Dates
 
@@ -92,6 +103,15 @@ Build notes:
 
 - Week 1 started: `core/` has resampling, a pocketfft spectrum, region colour mean, POS pulse extraction and a sliding-window `PulseTracker`. `sources/` has the `FrameSource` interface, a synthetic face camera carrying true heart rate, and the `.vmrec` recording format with writer and replay reader. `tools/vm-offline` makes and analyses recordings. All tests pass on Linux and in the QNX VM.
 - The synthetic camera is easy: whole-patch averaging recovers the rate down to about a tenth of the assumed pulse strength. Real and rendered cameras will be much harder.
+
+Done Nov 15: Logitech C920 through the QNX Camera API in the VM
+
+- The C920 (USB 046d:08e5) is passed from the laptop into the QNX VM and delivers frames through `camera_start_viewfinder`. It is `CAMERA_UNIT_3`; units 1 and 2 stay the simulated cameras. The setup survives a VM reboot.
+- What it took: a QEMU EHCI controller (QNX's xHCI driver never enumerates the camera on QEMU's `qemu-xhci`), the package `qnx-sf-camera-usb`, and a sensor unit with `type = usb_camera`, `create_window = false` and `memory_allocator_type = from_sensor`. Without the last two, Screen in the VM refuses YCbYCr buffers and start fails with error 48 (ENOTSUP).
+- The camera offers YCbYCr, MJPEG and others, 160x90 to 2560x1472, up to 30 fps.
+- In the VM the frame rate is low and uneven (about 5 fps YCbYCr), and frame timestamps fall on a 32 ms grid set by QEMU's USB emulation. This is the emulated environment, not the camera or QNX. Do not use VM camera timing for heart rate variability.
+- Full log, start script and probe programs: `docs/private/C920_QNX_TEST.md` on the laptop, with a copy in the VM at `~qnxuser/c920-setup/`.
+- Next to discuss: the Linux capture fallback, where Linux captures the camera, timestamps each frame at capture and sends frames to QNX over the network. The real camera path gets its timing test on the Raspberry Pi 5.
 
 Next, for week 1:
 
