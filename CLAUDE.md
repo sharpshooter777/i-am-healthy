@@ -82,6 +82,7 @@ tests/
 - No GPL dependencies in the build. That rules out FFTW and, pending a licence check, Qt Charts and Qt Graphs. Vendor a permissively licensed single-file FFT.
 - No dataset video and nothing from `docs/private/` in the repository.
 - The dose protocol is confidential. Model the dose rate as an opaque level or a plain changed event. Never ask for, record or describe protocol details, and keep them out of code, comments, the simulation and the video.
+- No personal physiological readings in tracked files: no one's heart rate, RR intervals, heart rate variability or other measurements, and no personal details of how a sensor was fitted. They go in `docs/private/`.
 - Do not quote latency figures measured in the QEMU VM. Timing claims come from the Raspberry Pi 5 or bare metal.
 - Do not type passwords. Hand `sudo` steps and password prompts to Dale to run.
 - The repository licence is Apache-2.0, decided by Dale on November 14.
@@ -112,6 +113,11 @@ Done Nov 15: Logitech C920 through the QNX Camera API in the VM
 - In the VM the frame rate is low and uneven (about 5 fps YCbYCr), and frame timestamps fall on a 32 ms grid set by QEMU's USB emulation. This is the emulated environment, not the camera or QNX. Do not use VM camera timing for heart rate variability.
 - Full log, start script and probe programs: `docs/private/C920_QNX_TEST.md` on the laptop, with a copy in the VM at `~qnxuser/c920-setup/`.
 - Next to discuss: the Linux capture fallback, where Linux captures the camera, timestamps each frame at capture and sends frames to QNX over the network. The real camera path gets its timing test on the Raspberry Pi 5.
+
+Done Nov 15: Polar H10 chest strap as heart-rate ground truth
+
+- The H10 works over standard Bluetooth LE (Heart Rate Measurement, 0x2A37), which carries heart rate and beat-to-beat (RR) intervals. Test details are in `docs/private/hardware/H10_TEST.md`.
+- Poor electrode contact produces RR intervals that are noise, not beats. Any code that uses the H10 as ground truth must detect this, for example when the RR intervals disagree with the reported heart rate or vary implausibly from beat to beat.
 
 Next, for week 1:
 
