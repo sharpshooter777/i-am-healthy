@@ -132,6 +132,13 @@ Done Nov 23: sensor combining, core logic
 - `vm-core --hr-client` feeds the strap through it as the only source so far, so every line reads "single source, alarms held".
 - Next: the camera pulse estimate as a second source, so a recording replays through strap + camera to a corroborated reading (the first beta).
 
+Done Nov 24: camera pulse estimate, core and desk tool
+
+- `core/grid_pulse` (`GridPulse`): per-block POS on a 32x18 colour grid, skin mask (mean red over mean blue), blocks ranked by a running record of peak sharpness, top 8 spectra summed, verdict from quality and block agreement. `tools/grid-pulse` reads rgb48le grids piped from FFmpeg.
+- Checked against the chest strap on two ten-minute stretches of a seated reference recording (grids in /tmp on the laptop are scratch; regenerate with the FFmpeg line in the README). All estimates: 60 to 68 % within 3 bpm. With the default verdict (quality >= 0.25, agreeing >= 4): roughly a quarter believed, about nine in ten of those within 3 bpm.
+- Wrong estimates are nearly always too low (45 to 60 bpm): slow movement at the bottom of the band. Tried and rejected: tilting the spectrum by a power of frequency (every tilt >= 2 pushed all estimates to the top of the band), a background-block reference, and whole-skin agreement counts (neither separated right from wrong).
+- Not yet: feeding it into `HeartRateFusion` beside the strap (the first beta), exercise footage, the C920 view.
+
 Next, for week 1:
 
 1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.

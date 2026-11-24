@@ -9,3 +9,8 @@ vitals_warnings(vm-offline)
 add_executable(hr-bridge hr-bridge/main.cpp)
 target_link_libraries(hr-bridge PRIVATE vitals_core vitals_sources vitals_platform)
 vitals_warnings(hr-bridge)
+
+# Camera heart rate from coarse colour grids piped out of FFmpeg.
+add_executable(grid-pulse grid-pulse/main.cpp)
+target_link_libraries(grid-pulse PRIVATE vitals_core)
+vitals_warnings(grid-pulse)

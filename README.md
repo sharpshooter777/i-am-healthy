@@ -111,6 +111,16 @@ tail -f -n0 strap.raw | ./build/linux-gcc/bin/hr-bridge follow  # live, as the l
 
 Each sample is checked on arrival: electrode contact as the strap reports it, and whether the beat-to-beat intervals agree with the reported rate. A reading is marked stale after three seconds without a sample. The strap log format is one line per Bluetooth notification: receive time in seconds, then the Heart Rate Measurement bytes in hex.
 
+### Heart rate from a camera
+
+`core/grid_pulse` reads a pulse from video without being told where the face is. Each frame is reduced to a 32 by 18 grid of block colours; every skin-coloured block is tried as a pulse sensor, and the blocks with the cleanest single peak are combined. The estimate carries its own verdict, so a camera that cannot see a pulse reports nothing instead of noise. FFmpeg does the capture and the reduction:
+
+```sh
+ffmpeg -i session.mkv -vf format=rgb48le,scale=32:18:flags=area -f rawvideo -pix_fmt rgb48le - | ./build/linux-gcc/bin/grid-pulse -
+```
+
+Each output line is: seconds into the stream, bpm, quality, agreeing blocks, skin blocks, verdict.
+
 ### Combining sensors
 
 No single sensor is trusted alone. `core/fusion` applies five rules to every heart-rate source, strap or camera:
