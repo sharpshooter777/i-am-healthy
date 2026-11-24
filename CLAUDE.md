@@ -119,6 +119,13 @@ Done Nov 15: Polar H10 chest strap as heart-rate ground truth
 - The H10 works over standard Bluetooth LE (Heart Rate Measurement, 0x2A37), which carries heart rate and beat-to-beat (RR) intervals. Test details are in `docs/private/hardware/H10_TEST.md`.
 - Poor electrode contact produces RR intervals that are noise, not beats. Any code that uses the H10 as ground truth must detect this, for example when the RR intervals disagree with the reported heart rate or vary implausibly from beat to beat.
 
+Done Nov 23: heart-rate bridge
+
+- `tools/hr-bridge` serves strap samples over TCP (modes `replay`, `follow`, `synth`); `vm-core --hr-client <host[:port]>` reads them, checks contact and RR plausibility, and marks a reading stale after 3 s of silence. Line format: `HR1 <t_ns> <bpm> <contact> <rr list>`.
+- New: `core/heart_rate` (0x2A37 decoder, RR check, line codec), `core/line_buffer`, `sources/h10_log` (reads the gatttool logs), `platform/net` (BSD sockets for QNX and Linux, Winsock for Windows).
+- The strap logger is `docs/private/hardware/h10_gatt_loop.sh ADDR SECONDS OUTFILE`. Do not stop it with `pkill -f`: over SSH that pattern matches the SSH command itself.
+- Tested on Linux. Cross-compiles for QNX; run it in the VM with the bridge on the laptop at the libvirt gateway address (192.168.122.1) once the VM is up.
+
 Next, for week 1:
 
 1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.

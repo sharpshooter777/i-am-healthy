@@ -4,18 +4,21 @@
 add_executable(core_tests
     main.cpp
     core/test_dsp.cpp
+    core/test_heart_rate.cpp
     core/test_trend.cpp)
 target_link_libraries(core_tests PRIVATE vitals_core doctest)
 vitals_warnings(core_tests)
 
 add_executable(platform_tests
     main.cpp
-    platform/test_clock.cpp)
+    platform/test_clock.cpp
+    platform/test_net.cpp)
 target_link_libraries(platform_tests PRIVATE vitals_platform doctest)
 vitals_warnings(platform_tests)
 
 add_executable(sources_tests
     main.cpp
+    sources/test_h10_log.cpp
     sources/test_sources.cpp)
 target_link_libraries(sources_tests PRIVATE vitals_sources vitals_core doctest)
 vitals_warnings(sources_tests)

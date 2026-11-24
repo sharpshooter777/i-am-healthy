@@ -95,6 +95,22 @@ scripts/qnx-selftest.sh qnx-x86_64 qnxuser@<target-address>
 
 The script copies the binaries to `~/vitalmon/<preset>` on the target over SSH and runs the unit tests and `vm-core --selftest` there. It needs key-based SSH login. Use `qnx-aarch64le` for the Raspberry Pi 5.
 
+## Heart rate from a chest strap
+
+A Bluetooth chest strap gives the reference heart rate that the camera estimates are compared against. The strap talks to a machine with a Bluetooth radio; `hr-bridge` on that machine serves the samples over TCP and the QNX side connects out to it.
+
+```sh
+# on the machine with the strap (Linux or Windows)
+./build/linux-gcc/bin/hr-bridge synth --bpm 72 --seconds 60     # made-up rhythm, no strap needed
+./build/linux-gcc/bin/hr-bridge replay strap.raw                # a recorded session at its original pace
+tail -f -n0 strap.raw | ./build/linux-gcc/bin/hr-bridge follow  # live, as the logger writes
+
+# on QNX
+./vm-core --hr-client <bridge-address>:5600
+```
+
+Each sample is checked on arrival: electrode contact as the strap reports it, and whether the beat-to-beat intervals agree with the reported rate. A reading is marked stale after three seconds without a sample. The strap log format is one line per Bluetooth notification: receive time in seconds, then the Heart Rate Measurement bytes in hex.
+
 ## QNX usage
 
 See [docs/QNX_USAGE.md](docs/QNX_USAGE.md) for the files and functions that use QNX.

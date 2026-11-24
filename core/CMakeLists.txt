@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Pure C++17: signal processing, fusion, alarm and trend logic. No OS calls.
 add_library(vitals_core STATIC
+    src/heart_rate.cpp
     src/image.cpp
     src/pulse.cpp
     src/resample.cpp
