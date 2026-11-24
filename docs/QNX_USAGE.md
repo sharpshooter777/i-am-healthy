@@ -43,7 +43,7 @@ The signal processing in `core/` and the frame sources in `sources/` are portabl
 `vm-core --hr-client <host>` on the QNX target prints one line per heart-rate sample with its contact and interval checks, then a summary with the arrival-gap statistics:
 
 ```text
-hr-client: connected to 192.168.122.1:5600 (qnx)
+hr-client: connected to <bridge-address>:5600 (qnx)
 hr  72 bpm  contact ok    rr 1 ok
 ...
 hr-client summary

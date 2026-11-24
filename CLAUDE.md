@@ -124,7 +124,7 @@ Done Nov 23: heart-rate bridge
 - `tools/hr-bridge` serves strap samples over TCP (modes `replay`, `follow`, `synth`); `vm-core --hr-client <host[:port]>` reads them, checks contact and RR plausibility, and marks a reading stale after 3 s of silence. Line format: `HR1 <t_ns> <bpm> <contact> <rr list>`.
 - New: `core/heart_rate` (0x2A37 decoder, RR check, line codec), `core/line_buffer`, `sources/h10_log` (reads the gatttool logs), `platform/net` (BSD sockets for QNX and Linux, Winsock for Windows).
 - The strap logger is `docs/private/hardware/h10_gatt_loop.sh ADDR SECONDS OUTFILE`. Do not stop it with `pkill -f`: over SSH that pattern matches the SSH command itself.
-- Tested on Linux. Cross-compiles for QNX; run it in the VM with the bridge on the laptop at the libvirt gateway address (192.168.122.1) once the VM is up.
+- Tested Nov 23 on Linux and in the QNX VM: unit tests pass on both (`scripts/qnx-selftest.sh`), and `vm-core --hr-client` in the VM received a replayed session from `hr-bridge` on the laptop. The VM reaches the laptop at the libvirt gateway address (see `docs/private/ENVIRONMENT.md`). Start the VM without a terminal with `mkqnximage --run=-h` (needs `DISPLAY`); that leaves the C920 with Linux.
 
 Next, for week 1:
 
