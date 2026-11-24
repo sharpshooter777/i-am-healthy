@@ -3,6 +3,7 @@
 add_library(vitals_core STATIC
     src/fusion.cpp
     src/grid_pulse.cpp
+    src/heart_monitor.cpp
     src/heart_rate.cpp
     src/image.cpp
     src/pulse.cpp

@@ -137,7 +137,16 @@ Done Nov 24: camera pulse estimate, core and desk tool
 - `core/grid_pulse` (`GridPulse`): per-block POS on a 32x18 colour grid, skin mask (mean red over mean blue), blocks ranked by a running record of peak sharpness, top 8 spectra summed, verdict from quality and block agreement. `tools/grid-pulse` reads rgb48le grids piped from FFmpeg.
 - Checked against the chest strap on two ten-minute stretches of a seated reference recording (grids in /tmp on the laptop are scratch; regenerate with the FFmpeg line in the README). All estimates: 60 to 68 % within 3 bpm. With the default verdict (quality >= 0.25, agreeing >= 4): roughly a quarter believed, about nine in ten of those within 3 bpm.
 - Wrong estimates are nearly always too low (45 to 60 bpm): slow movement at the bottom of the band. Tried and rejected: tilting the spectrum by a power of frequency (every tilt >= 2 pushed all estimates to the top of the band), a background-block reference, and whole-skin agreement counts (neither separated right from wrong).
-- Not yet: feeding it into `HeartRateFusion` beside the strap (the first beta), exercise footage, the C920 view.
+- Not yet: exercise footage, the C920 view.
+
+Done Nov 24: first beta, strap and camera through the combining rules
+
+- `core/heart_monitor` (`HeartMonitor`) owns a `GridPulse` and a `HeartRateFusion`: strap is rank 1, camera rank 2. A camera estimate is made every 5 s and stands for two hops (per-source staleness, new in `add_source`). The camera's verdict is its quality check. `strap_quality_ok()` in `core/heart_rate` is the strap's, shared with `vm-core --hr-client`.
+- `tools/session-replay` replays a strap log and a grid stream on one clock (`--grid-start` is the first frame's clock time) and counts, per second, corroborated / strap alone / camera alone / disputed / no number. `--strap-off` withholds the strap and scores the camera against it.
+- On the two ten-minute seated stretches: corroborated (alarms permitted) for about a fifth to a quarter of the time, strap alone for the rest, disputed 1 to 3 %. Of the camera estimates it believed, 52 of 56 agreed with the strap. With the strap withheld for three minutes the camera carried about 30 s of it, within 5 bpm throughout; the remainder showed no number, by design.
+- Same result on Linux and in the QNX VM; ten minutes of grids replay in about 32 s in the VM.
+- Observed, not acted on: many camera estimates the camera itself doubts are in fact close to the strap. The verdict is strict. Whether a doubted reading that agrees with the strap may count as corroboration is an open design question (chance agreement must be ruled out first).
+- Not yet: live camera frames on QNX into `HeartMonitor` (replay only so far), exercise footage, the C920 view, a test that runs `session-replay` end to end on made-up files.
 
 Next, for week 1:
 

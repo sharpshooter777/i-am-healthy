@@ -14,3 +14,8 @@ vitals_warnings(hr-bridge)
 add_executable(grid-pulse grid-pulse/main.cpp)
 target_link_libraries(grid-pulse PRIVATE vitals_core)
 vitals_warnings(grid-pulse)
+
+# A recorded session through the heart monitor, strap and camera together.
+add_executable(session-replay session-replay/main.cpp)
+target_link_libraries(session-replay PRIVATE vitals_core vitals_sources)
+vitals_warnings(session-replay)

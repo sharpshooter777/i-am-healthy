@@ -160,7 +160,7 @@ int run_hr_client(const HrClientOptions& o, std::ostream& out) {
                 // Quality is judged before the reading is used: lost contact
                 // or intervals that contradict the rate rule the sample out.
                 const double t_s = static_cast<double>(now) * 1e-9;
-                fusion.update(strap, t_s, sample.bpm, !lost && (no_rr || rr_ok));
+                fusion.update(strap, t_s, sample.bpm, core::strap_quality_ok(sample));
                 const core::FusedHeartRate fused = fusion.evaluate(t_s);
                 switch (fused.status) {
                     case core::FusionStatus::single: ++st.fused_single; break;

@@ -116,3 +116,19 @@ TEST_CASE("line buffer: pieces are joined and the tail is kept") {
     CHECK_FALSE(b.next(line));
     CHECK(b.pending() == 2);
 }
+
+TEST_CASE("strap quality: lost contact or contradicting intervals fail, no intervals pass") {
+    HeartRateSample s;
+    s.bpm = 60;
+    s.contact = Contact::ok;
+    CHECK(strap_quality_ok(s));        // no intervals in this packet
+    s.rr_ms = {1000.0};
+    CHECK(strap_quality_ok(s));
+    s.rr_ms = {400.0};                 // 150 bpm intervals against a 60 bpm rate
+    CHECK_FALSE(strap_quality_ok(s));
+    s.rr_ms = {1000.0};
+    s.contact = Contact::lost;
+    CHECK_FALSE(strap_quality_ok(s));
+    s.contact = Contact::unknown;      // a strap that does not report contact
+    CHECK(strap_quality_ok(s));
+}

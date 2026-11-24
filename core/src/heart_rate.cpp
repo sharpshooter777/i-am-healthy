@@ -62,6 +62,11 @@ bool rr_plausible(const HeartRateSample& s) {
     return std::fabs(implied - s.bpm) <= 0.25 * s.bpm;
 }
 
+bool strap_quality_ok(const HeartRateSample& s) {
+    if (s.contact == Contact::lost) return false;
+    return s.rr_ms.empty() || rr_plausible(s);
+}
+
 std::string encode_hr_line(const HeartRateSample& s) {
     std::ostringstream o;
     o << "HR1 " << s.t_ns << ' ' << s.bpm << ' ';

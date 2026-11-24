@@ -131,6 +131,17 @@ No single sensor is trusted alone. `core/fusion` applies five rules to every hea
 4. Always show which source is in use.
 5. Never permit an alarm on one source's word.
 
+### Strap and camera together
+
+`core/heart_monitor` is the monitor as one object: strap samples and camera frames go in with their times, and the combined reading comes out with the source in use and whether an alarm is permitted. `session-replay` runs a recorded session through it and reports what the monitor would have shown, second by second:
+
+```sh
+ffmpeg -i session.mkv -vf format=rgb48le,scale=32:18:flags=area -f rawvideo -pix_fmt rgb48le - | \
+  ./build/linux-gcc/bin/session-replay --strap strap.raw --grid - --grid-start <clock time of the first frame, epoch seconds>
+```
+
+Add `--strap-off <from s> <for s>` to withhold the strap for a stretch, as if it had fallen off: the monitor carries on with the camera, alarms held, and shows no number when the camera does not believe its own reading. The withheld strap readings score what the camera showed. `--quiet` prints the summary only. The same binary runs on QNX.
+
 ## QNX usage
 
 See [docs/QNX_USAGE.md](docs/QNX_USAGE.md) for the files and functions that use QNX.

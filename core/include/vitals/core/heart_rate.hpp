@@ -40,6 +40,11 @@ bool parse_hrm(const std::uint8_t* data, std::size_t size, HeartRateSample& out)
 // A sample with no intervals returns false: there is nothing to trust.
 bool rr_plausible(const HeartRateSample& s);
 
+// The strap's own quality check, as the combining stage takes it: contact
+// not reported lost, and any intervals sent agree with the rate. A sample
+// without intervals passes; a strap sends none for some beats.
+bool strap_quality_ok(const HeartRateSample& s);
+
 // One sample per line, no trailing newline:
 //   HR1 <t_ns> <bpm> <contact u|0|1> <rr_ms,rr_ms,...|->
 // Intervals are written with one decimal place.

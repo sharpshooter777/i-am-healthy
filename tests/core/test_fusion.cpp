@@ -85,6 +85,23 @@ TEST_CASE("fusion: a silent source goes stale and the next one takes over") {
     CHECK_FALSE(out.alarm_permitted);
 }
 
+TEST_CASE("fusion: a slow source keeps its own staleness limit") {
+    HeartRateFusion f;
+    const int strap = f.add_source("strap", 1);
+    const int camera = f.add_source("camera", 2, 10.0);  // one estimate every 5 s
+    f.update(strap, 100.0, 72.0, true);
+    f.update(camera, 100.0, 73.0, true);
+    for (double t = 101.0; t <= 108.0; t += 1.0) f.update(strap, t, 72.0, true);
+    FusedHeartRate out = f.evaluate(108.0);  // camera silent for 8 s: still standing
+    CHECK(out.sources[static_cast<std::size_t>(camera)].state == SourceState::ok);
+    CHECK(out.status == FusionStatus::corroborated);
+    for (double t = 109.0; t <= 111.0; t += 1.0) f.update(strap, t, 72.0, true);
+    out = f.evaluate(111.0);                 // 11 s: gone
+    CHECK(out.sources[static_cast<std::size_t>(camera)].state == SourceState::stale);
+    CHECK(out.status == FusionStatus::single);
+    CHECK(out.source == strap);
+}
+
 TEST_CASE("fusion: quality is judged before a reading is used (rule 2)") {
     Rig r;
     r.f.update(r.strap_a, 10.0, 72.0, false);  // poor electrode contact

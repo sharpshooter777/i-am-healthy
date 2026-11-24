@@ -76,8 +76,10 @@ public:
     explicit HeartRateFusion(FusionConfig config = {});
 
     // Registers a source and returns its index. Lower rank is more trusted;
-    // give every source a different rank.
-    int add_source(std::string name, int rank);
+    // give every source a different rank. A source that reports at its own
+    // pace (a camera estimate every few seconds) passes its own staleness
+    // limit; 0 keeps the one in the configuration.
+    int add_source(std::string name, int rank, double stale_after_s = 0.0);
 
     // A new reading. `quality_ok` is the source's own verdict, judged before
     // the reading is used: electrode contact for a strap, signal strength
@@ -93,6 +95,7 @@ private:
     struct Source {
         std::string name;
         int rank = 0;
+        double stale_after_s = 0.0;
         bool reported = false;
         double last_t = 0.0;
         double last_bpm = 0.0;

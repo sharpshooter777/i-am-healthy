@@ -31,10 +31,11 @@ const char* to_string(FusionStatus s) {
 
 HeartRateFusion::HeartRateFusion(FusionConfig config) : config_(config) {}
 
-int HeartRateFusion::add_source(std::string name, int rank) {
+int HeartRateFusion::add_source(std::string name, int rank, double stale_after_s) {
     Source s;
     s.name = std::move(name);
     s.rank = rank;
+    s.stale_after_s = stale_after_s > 0.0 ? stale_after_s : config_.stale_after_s;
     sources_.push_back(std::move(s));
     return static_cast<int>(sources_.size()) - 1;
 }
@@ -85,7 +86,7 @@ FusedHeartRate HeartRateFusion::evaluate(double t_s) const {
         r.rank = s.rank;
         r.bpm = s.last_bpm;
         if (!s.reported) r.state = SourceState::absent;
-        else if (t_s - s.last_t > config_.stale_after_s) r.state = SourceState::stale;
+        else if (t_s - s.last_t > s.stale_after_s) r.state = SourceState::stale;
         else r.state = s.last_state;
         if (r.state == SourceState::ok) candidates.emplace_back(s.last_bpm, static_cast<int>(i));
         out.sources.push_back(std::move(r));
