@@ -2,7 +2,9 @@
 //
 // The receiving end of the heart-rate bridge. This is the first live input to
 // vm-core: chest-strap samples arriving from another machine, each checked
-// before anything downstream may use it.
+// and then passed through the combining rules (core/fusion) before anything
+// downstream may use it. With the strap as the only source so far, every
+// reading is "single source": shown, but not allowed to raise an alarm.
 #include "hr_client.hpp"
 
 #include <algorithm>
@@ -11,6 +13,7 @@
 #include <ostream>
 #include <thread>
 
+#include "vitals/core/fusion.hpp"
 #include "vitals/core/heart_rate.hpp"
 #include "vitals/core/line_buffer.hpp"
 #include "vitals/platform/net.hpp"
@@ -35,6 +38,7 @@ struct Stats {
     std::size_t bad_lines = 0;
     std::size_t stale_periods = 0;
     std::size_t connections = 0;
+    std::size_t fused_single = 0, fused_corroborated = 0, fused_disputed = 0, fused_none = 0;
     std::int64_t gap_min_ns = 0, gap_max_ns = 0, gap_sum_ns = 0;
     std::size_t gaps = 0;
 };
@@ -55,7 +59,9 @@ void print_summary(const Stats& st, std::ostream& out) {
         << "  no intervals      " << st.rr_missing << '\n'
         << "  intervals suspect " << st.rr_implausible << '\n'
         << "  stale periods     " << st.stale_periods << '\n'
-        << "  unreadable lines  " << st.bad_lines << '\n';
+        << "  unreadable lines  " << st.bad_lines << '\n'
+        << "  combined reading  single source " << st.fused_single << ", corroborated " << st.fused_corroborated
+        << ", disputed " << st.fused_disputed << ", none " << st.fused_none << '\n';
     if (st.gaps > 0) {
         char buf[160];
         std::snprintf(buf, sizeof buf, "  arrival gap ms    min %.1f  mean %.1f  max %.1f\n",
@@ -76,6 +82,11 @@ int run_hr_client(const HrClientOptions& o, std::ostream& out) {
     const std::int64_t started = platform::monotonic_ns();
     const std::int64_t deadline = o.seconds > 0.0 ? started + static_cast<std::int64_t>(o.seconds * 1e9) : 0;
     const auto expired = [&] { return deadline != 0 && platform::monotonic_ns() >= deadline; };
+
+    // The combining stage. Camera estimates join as further sources; until
+    // then the strap stands alone and no alarm is permitted on its word.
+    core::HeartRateFusion fusion;
+    const int strap = fusion.add_source("chest strap", 1);
 
     Stats st;
     std::int64_t last_arrival = 0;
@@ -146,11 +157,34 @@ int run_hr_client(const HrClientOptions& o, std::ostream& out) {
                 if (no_rr) ++st.rr_missing;
                 else if (!rr_ok) ++st.rr_implausible;
 
+                // Quality is judged before the reading is used: lost contact
+                // or intervals that contradict the rate rule the sample out.
+                const double t_s = static_cast<double>(now) * 1e-9;
+                fusion.update(strap, t_s, sample.bpm, !lost && (no_rr || rr_ok));
+                const core::FusedHeartRate fused = fusion.evaluate(t_s);
+                switch (fused.status) {
+                    case core::FusionStatus::single: ++st.fused_single; break;
+                    case core::FusionStatus::corroborated: ++st.fused_corroborated; break;
+                    case core::FusionStatus::disputed: ++st.fused_disputed; break;
+                    case core::FusionStatus::no_source: ++st.fused_none; break;
+                }
+
                 if (!o.quiet) {
-                    char text[160];
-                    std::snprintf(text, sizeof text, "hr %3d bpm  %-12s  rr %zu %s",
-                                  sample.bpm, contact_text(sample.contact), sample.rr_ms.size(),
-                                  no_rr ? "none" : (rr_ok ? "ok" : "SUSPECT"));
+                    char text[240];
+                    const int len = std::snprintf(text, sizeof text, "hr %3d bpm  %-12s  rr %zu %-7s | ",
+                                                sample.bpm, contact_text(sample.contact), sample.rr_ms.size(),
+                                                no_rr ? "none" : (rr_ok ? "ok" : "SUSPECT"));
+                    const std::size_t used = len > 0 ? static_cast<std::size_t>(len) : 0;
+                    if (fused.source >= 0) {
+                        std::snprintf(text + used, sizeof text - used, "in use: %s, %s%s",
+                                      fused.sources[static_cast<std::size_t>(fused.source)].name.c_str(),
+                                      core::to_string(fused.status),
+                                      fused.alarm_permitted ? "" : ", alarms held");
+                    } else {
+                        std::snprintf(text + used, sizeof text - used, "no believable source (%s %s)",
+                                      fused.sources[static_cast<std::size_t>(strap)].name.c_str(),
+                                      core::to_string(fused.sources[static_cast<std::size_t>(strap)].state));
+                    }
                     out << text << std::endl;
                 }
             }

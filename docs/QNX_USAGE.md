@@ -40,11 +40,11 @@ self-test passed
 
 The signal processing in `core/` and the frame sources in `sources/` are portable C++17 and use no QNX-specific calls; they are built for QNX with the toolchain above and tested on the target.
 
-`vm-core --hr-client <host>` on the QNX target prints one line per heart-rate sample with its contact and interval checks, then a summary with the arrival-gap statistics:
+`vm-core --hr-client <host>` on the QNX target prints one line per heart-rate sample with its contact and interval checks and the source in use after the combining rules, then a summary with the arrival-gap statistics:
 
 ```text
 hr-client: connected to <bridge-address>:5600 (qnx)
-hr  72 bpm  contact ok    rr 1 ok
+hr  72 bpm  contact ok    rr 1 ok      | in use: chest strap, single source, alarms held
 ...
 hr-client summary
   samples           6

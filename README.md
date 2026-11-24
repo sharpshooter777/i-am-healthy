@@ -111,6 +111,16 @@ tail -f -n0 strap.raw | ./build/linux-gcc/bin/hr-bridge follow  # live, as the l
 
 Each sample is checked on arrival: electrode contact as the strap reports it, and whether the beat-to-beat intervals agree with the reported rate. A reading is marked stale after three seconds without a sample. The strap log format is one line per Bluetooth notification: receive time in seconds, then the Heart Rate Measurement bytes in hex.
 
+### Combining sensors
+
+No single sensor is trusted alone. `core/fusion` applies five rules to every heart-rate source, strap or camera:
+
+1. Use the highest-ranked source that is connected and believable.
+2. Believable means its own quality check passed, the value is in a sane range, and it is not changing faster than a heart can.
+3. When one source disagrees with others that agree, use the agreeing group and flag the odd one.
+4. Always show which source is in use.
+5. Never permit an alarm on one source's word.
+
 ## QNX usage
 
 See [docs/QNX_USAGE.md](docs/QNX_USAGE.md) for the files and functions that use QNX.

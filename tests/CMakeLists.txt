@@ -4,6 +4,7 @@
 add_executable(core_tests
     main.cpp
     core/test_dsp.cpp
+    core/test_fusion.cpp
     core/test_heart_rate.cpp
     core/test_trend.cpp)
 target_link_libraries(core_tests PRIVATE vitals_core doctest)

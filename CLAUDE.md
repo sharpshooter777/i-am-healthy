@@ -126,6 +126,12 @@ Done Nov 23: heart-rate bridge
 - The strap logger is `docs/private/hardware/h10_gatt_loop.sh ADDR SECONDS OUTFILE`. Do not stop it with `pkill -f`: over SSH that pattern matches the SSH command itself.
 - Tested Nov 23 on Linux and in the QNX VM: unit tests pass on both (`scripts/qnx-selftest.sh`), and `vm-core --hr-client` in the VM received a replayed session from `hr-bridge` on the laptop. The VM reaches the laptop at the libvirt gateway address (see `docs/private/ENVIRONMENT.md`). Start the VM without a terminal with `mkqnximage --run=-h` (needs `DISPLAY`); that leaves the C920 with Linux.
 
+Done Nov 23: sensor combining, core logic
+
+- `core/fusion` (`HeartRateFusion`) implements the five combining rules agreed Nov 15, with a test per rule in `tests/core/test_fusion.cpp`. Sources are registered with a rank; `update()` takes each reading with the source's own quality verdict; `evaluate()` returns the value, the source in use, a status (`single`, `corroborated`, `disputed`, `no_source`) and whether an alarm is permitted (only when corroborated).
+- `vm-core --hr-client` feeds the strap through it as the only source so far, so every line reads "single source, alarms held".
+- Next: the camera pulse estimate as a second source, so a recording replays through strap + camera to a corroborated reading (the first beta).
+
 Next, for week 1:
 
 1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.
