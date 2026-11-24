@@ -142,6 +142,8 @@ ffmpeg -i session.mkv -vf format=rgb48le,scale=32:18:flags=area -f rawvideo -pix
 
 Add `--strap-off <from s> <for s>` to withhold the strap for a stretch, as if it had fallen off: the monitor carries on with the camera, alarms held, and shows no number when the camera does not believe its own reading. The withheld strap readings score what the camera showed. `--quiet` prints the summary only. The same binary runs on QNX.
 
+No recording to hand? `session-replay synth strap.raw grid.raw` writes a made-up session (replay it with `--grid-start 1000000000`); the test suite does exactly that.
+
 ## QNX usage
 
 See [docs/QNX_USAGE.md](docs/QNX_USAGE.md) for the files and functions that use QNX.

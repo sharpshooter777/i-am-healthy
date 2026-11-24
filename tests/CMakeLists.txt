@@ -39,4 +39,17 @@ if(NOT CMAKE_CROSSCOMPILING)
              COMMAND vm-offline analyse offline-test.vmrec --max-error 3 --limit 100 --quiet)
     set_tests_properties(vm-offline-synth PROPERTIES FIXTURES_SETUP offline_rec)
     set_tests_properties(vm-offline-analyse PROPERTIES FIXTURES_REQUIRED offline_rec)
+
+    # Strap and camera together, end to end: write a made-up session, replay
+    # it, then replay it with the strap withheld for the last 20 seconds.
+    add_test(NAME session-replay-synth
+             COMMAND session-replay synth replay-test-strap.raw replay-test-grid.raw --seconds 60 --bpm 72)
+    add_test(NAME session-replay-agree
+             COMMAND session-replay --strap replay-test-strap.raw --grid replay-test-grid.raw
+                     --grid-start 1000000000 --quiet --require-corroborated 25)
+    add_test(NAME session-replay-strap-off
+             COMMAND session-replay --strap replay-test-strap.raw --grid replay-test-grid.raw
+                     --grid-start 1000000000 --quiet --strap-off 40 20 --require-camera-alone 10)
+    set_tests_properties(session-replay-synth PROPERTIES FIXTURES_SETUP replay_session)
+    set_tests_properties(session-replay-agree session-replay-strap-off PROPERTIES FIXTURES_REQUIRED replay_session)
 endif()

@@ -146,7 +146,8 @@ Done Nov 24: first beta, strap and camera through the combining rules
 - On the two ten-minute seated stretches: corroborated (alarms permitted) for about a fifth to a quarter of the time, strap alone for the rest, disputed 1 to 3 %. Of the camera estimates it believed, 52 of 56 agreed with the strap. With the strap withheld for three minutes the camera carried about 30 s of it, within 5 bpm throughout; the remainder showed no number, by design.
 - Same result on Linux and in the QNX VM; ten minutes of grids replay in about 32 s in the VM.
 - Observed, not acted on: many camera estimates the camera itself doubts are in fact close to the strap. The verdict is strict. Whether a doubted reading that agrees with the strap may count as corroboration is an open design question (chance agreement must be ruled out first).
-- Not yet: live camera frames on QNX into `HeartMonitor` (replay only so far), exercise footage, the C920 view, a test that runs `session-replay` end to end on made-up files.
+- Not yet: live camera frames on QNX into `HeartMonitor` (replay only so far), exercise footage, the C920 view.
+- `session-replay synth` writes a made-up session; three ctest cases replay it end to end (agreeing, and with the strap withheld). The `--require-...` options turn the exit code into the test.
 
 Next, for week 1:
 

@@ -7,12 +7,18 @@
 //
 //   session-replay --strap <strap log> --grid <grid file|-> --grid-start <epoch s>
 //                  [--fps F] [--hop S] [--strap-off <from s> <for s>] [--quiet]
+//                  [--require-corroborated S] [--require-camera-alone S]
+//   session-replay synth <strap log> <grid file> [--seconds S] [--bpm B]
 //
 // The grid is the stream FFmpeg writes for grid-pulse (rgb48le, 32x18).
 // --grid-start is the clock time of its first frame, in seconds since the
 // epoch, on the clock the strap log was stamped with. --strap-off withholds
 // the strap for a stretch (seconds into the grid), as if it had fallen off;
-// the withheld readings are still used to score the camera.
+// the withheld readings are still used to score the camera. The --require
+// options make the exit code a test: at least that many seconds must have
+// been shown that way. `synth` writes a made-up session to replay: a steady
+// strap and a patch of skin with a pulse at the same rate, clock starting at
+// 1000000000.
 //
 // Research prototype. Not a medical device. Not for clinical decisions.
 #include <algorithm>
@@ -22,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -41,12 +48,18 @@ struct Options {
     double off_from_s = -1.0;
     double off_for_s = 0.0;
     bool quiet = false;
+    long require_corroborated = 0;
+    long require_camera_alone = 0;
 };
+
+constexpr double synth_start_s = 1000000000.0;
 
 void usage() {
     std::fprintf(stderr,
                  "usage: session-replay --strap <log> --grid <file|-> --grid-start <epoch s>\n"
-                 "                      [--fps F] [--hop S] [--strap-off <from s> <for s>] [--quiet]\n");
+                 "                      [--fps F] [--hop S] [--strap-off <from s> <for s>] [--quiet]\n"
+                 "                      [--require-corroborated S] [--require-camera-alone S]\n"
+                 "       session-replay synth <strap log> <grid file> [--seconds S] [--bpm B]\n");
 }
 
 bool parse_args(int argc, char** argv, Options& o) {
@@ -64,6 +77,8 @@ bool parse_args(int argc, char** argv, Options& o) {
         else if (a == "--fps") { if (!value(o.fps)) return false; }
         else if (a == "--hop") { if (!value(o.hop_s)) return false; }
         else if (a == "--strap-off") { if (!value(o.off_from_s) || !value(o.off_for_s)) return false; }
+        else if (a == "--require-corroborated" && i + 1 < argc) o.require_corroborated = std::atol(argv[++i]);
+        else if (a == "--require-camera-alone" && i + 1 < argc) o.require_camera_alone = std::atol(argv[++i]);
         else return false;
     }
     return !o.strap_path.empty() && !o.grid_path.empty() && o.grid_start_s >= 0.0 && o.fps > 0.0 && o.hop_s > 0.0;
@@ -84,9 +99,88 @@ struct Tally {
     double off_abs_error_sum = 0.0, off_abs_error_max = 0.0;
 };
 
+// Writes a made-up session: a strap log in the logger's format and a grid
+// stream as FFmpeg would write it, both at `bpm`.
+int synth(int argc, char** argv) {
+    if (argc < 4) {
+        usage();
+        return 2;
+    }
+    double seconds = 60.0;
+    int bpm = 72;
+    for (int i = 4; i + 1 < argc; i += 2) {
+        const std::string a = argv[i];
+        if (a == "--seconds") seconds = std::atof(argv[i + 1]);
+        else if (a == "--bpm") bpm = std::atoi(argv[i + 1]);
+        else {
+            usage();
+            return 2;
+        }
+    }
+    if (seconds <= 0.0 || bpm < 30 || bpm > 220) {
+        usage();
+        return 2;
+    }
+
+    std::FILE* strap = std::fopen(argv[2], "w");
+    std::FILE* grid = std::fopen(argv[3], "wb");
+    if (strap == nullptr || grid == nullptr) {
+        std::fprintf(stderr, "session-replay: cannot write %s or %s\n", argv[2], argv[3]);
+        if (strap != nullptr) std::fclose(strap);
+        if (grid != nullptr) std::fclose(grid);
+        return 1;
+    }
+    // One notification a second: flags 0x10 (intervals present), the rate,
+    // one interval in 1/1024 s, low byte first.
+    const auto rr = static_cast<unsigned>(std::lround(60.0 / bpm * 1024.0));
+    for (long k = 0; k < static_cast<long>(seconds); ++k) {
+        std::fprintf(strap, "%.0f.%09d Notification handle = 0x0010 value: 10 %02x %02x %02x\n",
+                     synth_start_s + static_cast<double>(k), 250000000, static_cast<unsigned>(bpm), rr & 0xffu,
+                     (rr >> 8) & 0xffu);
+    }
+    std::fclose(strap);
+
+    const core::GridPulseConfig c;
+    const double two_pi = 6.283185307179586;
+    std::mt19937 rng(5);
+    std::normal_distribution<double> noise(0.0, 1.0);
+    std::vector<std::uint8_t> raw(c.cols * c.rows * 3 * 2);
+    const auto frames = static_cast<std::size_t>(seconds * c.fs_hz);
+    bool ok = true;
+    for (std::size_t i = 0; i < frames && ok; ++i) {
+        const double s = 0.004 * std::sin(two_pi * bpm / 60.0 * static_cast<double>(i) / c.fs_hz);
+        for (std::size_t row = 0; row < c.rows; ++row) {
+            for (std::size_t col = 0; col < c.cols; ++col) {
+                const bool face = row >= 4 && row < 8 && col >= 12 && col < 16;
+                // Skin with a pulse (blood absorbs green most), or a bluish wall.
+                const double rgb[3] = {
+                    face ? 36000.0 * (1.0 + 0.33 * s) : 20000.0,
+                    face ? 28000.0 * (1.0 + 0.77 * s) : 22000.0,
+                    face ? 24000.0 * (1.0 + 0.53 * s) : 26000.0,
+                };
+                for (std::size_t ch = 0; ch < 3; ++ch) {
+                    const auto v = static_cast<unsigned>(std::lround(rgb[ch] + 40.0 * noise(rng)));
+                    std::uint8_t* p = &raw[((row * c.cols + col) * 3 + ch) * 2];
+                    p[0] = static_cast<std::uint8_t>(v & 0xffu);
+                    p[1] = static_cast<std::uint8_t>((v >> 8) & 0xffu);
+                }
+            }
+        }
+        ok = std::fwrite(raw.data(), 1, raw.size(), grid) == raw.size();
+    }
+    ok = std::fclose(grid) == 0 && ok;
+    if (!ok) {
+        std::fprintf(stderr, "session-replay: write failed on %s\n", argv[3]);
+        return 1;
+    }
+    std::printf("session-replay: wrote %.0f s at %d bpm; replay with --grid-start %.0f\n", seconds, bpm, synth_start_s);
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+    if (argc >= 2 && std::strcmp(argv[1], "synth") == 0) return synth(argc, argv);
     Options o;
     if (!parse_args(argc, argv, o)) {
         usage();
@@ -248,5 +342,14 @@ int main(int argc, char** argv) {
                         tally.off_within_5, tally.off_camera);
         }
     }
-    return 0;
+    int result = 0;
+    if (tally.corroborated < o.require_corroborated) {
+        std::printf("FAIL: corroborated for %ld s, at least %ld required\n", tally.corroborated, o.require_corroborated);
+        result = 1;
+    }
+    if (tally.single_camera < o.require_camera_alone) {
+        std::printf("FAIL: camera alone for %ld s, at least %ld required\n", tally.single_camera, o.require_camera_alone);
+        result = 1;
+    }
+    return result;
 }
