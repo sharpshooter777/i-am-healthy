@@ -43,6 +43,54 @@ struct GridPulseConfig {
     // Slow body movement puts power at the bottom of the band. A peak this
     // close to min_hz is not believed.
     double edge_guard_hz = 0.10;
+    // Movement check. A moving body has rhythms of its own (steps, strides,
+    // rocking) that pass the checks above, because the blocks at the edge of
+    // a moving face change colour in step with the movement. Two measures,
+    // both from the frames the pulse is read from:
+    //   movement  root-mean-square frame-to-frame change in relative
+    //             brightness of the combined blocks;
+    //   rhythm    the brightness spectra of all blocks are summed, and the
+    //             peak between movement_min_hz and movement_max_hz is the
+    //             movement rate; rhythm is its share of that band's power.
+    // An estimate is refused when movement >= movement_limit, whatever its
+    // rate, or when movement >= rhythm_min_movement, rhythm >= rhythm_limit
+    // and the peak is within movement_match_hz of the movement rate, half of
+    // it or double it. Otherwise the verdict is exactly as above.
+    //
+    // Set from two seated stretches and three treadmill runs (two cameras),
+    // checked against a chest strap:
+    // - movement_limit: believed seated estimates that agreed with the strap
+    //   reached 0.015 at most. Believed treadmill estimates (none agreed)
+    //   had medians of 0.026 to 0.072; on one run all were 0.026 or more.
+    // - rhythm_limit: believed seated estimates that agreed reached a rhythm
+    //   of 0.33 at most. On the third run (wide camera) many treadmill
+    //   estimates had movement below 0.02; with this rule the wrong ones
+    //   believed fell from 15 % to about 3 % of all estimates.
+    // - rhythm_min_movement: a still face's own pulse shows in its
+    //   brightness, so rhythm alone is no sign of movement. Half the limit,
+    //   above the seated median (0.004 to 0.007).
+    // - movement_match_hz: equal to peak_halfwidth_hz. Every believed
+    //   treadmill estimate but two (of 1054) was within it of the movement
+    //   rate, half or double.
+    double movement_limit = 0.02;
+    double rhythm_limit = 0.40;
+    double rhythm_min_movement = 0.01;
+    double movement_min_hz = 0.5;
+    double movement_max_hz = 4.5;  // above a running step rate
+    double movement_match_hz = 0.1;
+    std::size_t movement_nfft = 2048;  // about 0.015 Hz bins at 30 fps
+};
+
+// Why an estimate was not believed. The first reason that applies, in this order.
+enum class GridPulseRefusal {
+    none,                  // believed
+    not_ready,             // less than a full window of frames
+    no_peak,               // no usable skin blocks, or no peak in the band
+    moving_at_pulse_rate,  // moving, and the peak sits at the movement rate, half or double it
+    moving,                // moving strongly, at some other rate
+    weak_peak,             // quality below min_quality
+    few_agreeing,          // fewer than min_agreeing blocks show the rate
+    near_band_edge,        // peak within edge_guard_hz of min_hz
 };
 
 struct GridPulseEstimate {
@@ -53,7 +101,15 @@ struct GridPulseEstimate {
     std::size_t agreeing = 0;  // combined blocks whose own peak matches
     std::size_t skin_blocks = 0;
     std::vector<std::size_t> blocks;  // indices combined, row-major
+    // Movement seen in the window (see GridPulseConfig, movement check).
+    double movement = 0.0;     // frame-to-frame brightness change of the combined blocks
+    double movement_hz = 0.0;  // movement rate: brightness rhythm over the whole frame, 0 if none
+    double rhythm = 0.0;       // share of brightness power at movement_hz, 0..1
+    bool moving = false;       // movement >= movement_limit: no estimate is believed
+    GridPulseRefusal refusal = GridPulseRefusal::not_ready;  // none when believable
 };
+
+const char* to_string(GridPulseRefusal r);
 
 class GridPulse {
 public:
@@ -73,6 +129,9 @@ public:
     const GridPulseConfig& config() const { return config_; }
 
 private:
+    // Fills movement, movement_hz, rhythm and moving from the window; `chosen` are the combined blocks.
+    void measure_movement(const std::vector<std::size_t>& chosen, GridPulseEstimate& out) const;
+
     GridPulseConfig config_;
     std::size_t window_ = 0;            // frames in one window
     std::size_t filled_ = 0;

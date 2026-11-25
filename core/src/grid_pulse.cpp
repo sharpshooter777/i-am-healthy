@@ -10,6 +10,20 @@
 
 namespace vitals::core {
 
+const char* to_string(GridPulseRefusal r) {
+    switch (r) {
+        case GridPulseRefusal::none: return "believed";
+        case GridPulseRefusal::not_ready: return "not_ready";
+        case GridPulseRefusal::no_peak: return "no_peak";
+        case GridPulseRefusal::moving_at_pulse_rate: return "moving_at_pulse_rate";
+        case GridPulseRefusal::moving: return "moving";
+        case GridPulseRefusal::weak_peak: return "weak_peak";
+        case GridPulseRefusal::few_agreeing: return "few_agreeing";
+        case GridPulseRefusal::near_band_edge: return "near_band_edge";
+    }
+    return "unknown";
+}
+
 GridPulse::GridPulse(GridPulseConfig config) : config_(config) {
     window_ = static_cast<std::size_t>(std::lround(config_.window_s * config_.fs_hz));
     ring_.assign(window_ * frame_values(), 0.0);
@@ -21,6 +35,45 @@ void GridPulse::push(const double* rgb, std::size_t count) {
     std::copy(rgb, rgb + count, ring_.begin() + static_cast<std::ptrdiff_t>(head_ * count));
     head_ = (head_ + 1) % window_;
     if (filled_ < window_) ++filled_;
+}
+
+void GridPulse::measure_movement(const std::vector<std::size_t>& chosen, GridPulseEstimate& out) const {
+    const std::size_t nblocks = blocks();
+    const std::size_t per_frame = frame_values();
+    std::vector<double> rel(window_);
+    std::vector<char> is_chosen(nblocks, 0);
+    for (std::size_t k : chosen) is_chosen[k] = 1;
+
+    Spectrum sum;  // brightness spectra of all blocks, unnormalised, so the blocks that change most dominate
+    double change = 0.0;
+    for (std::size_t k = 0; k < nblocks; ++k) {
+        double mean = 0.0;
+        for (std::size_t i = 0; i < window_; ++i) {
+            const double* p = &ring_[((head_ + i) % window_) * per_frame + k * 3];  // oldest first
+            rel[i] = p[0] + p[1] + p[2];
+            mean += rel[i];
+        }
+        if (!(mean > 0.0)) continue;
+        mean /= static_cast<double>(window_);
+        for (double& v : rel) v = v / mean - 1.0;
+
+        if (is_chosen[k]) {
+            double d2 = 0.0;
+            for (std::size_t i = 1; i < window_; ++i) d2 += (rel[i] - rel[i - 1]) * (rel[i] - rel[i - 1]);
+            change += std::sqrt(d2 / static_cast<double>(window_ - 1));
+        }
+        const Spectrum sp = power_spectrum(rel, config_.fs_hz, config_.movement_nfft);
+        if (sum.power.empty()) {
+            sum = sp;
+        } else {
+            for (std::size_t i = 0; i < sum.power.size() && i < sp.power.size(); ++i) sum.power[i] += sp.power[i];
+        }
+    }
+    out.movement = chosen.empty() ? 0.0 : change / static_cast<double>(chosen.size());
+    out.moving = out.movement >= config_.movement_limit;
+    const Peak pk = find_peak(sum, config_.movement_min_hz, config_.movement_max_hz, config_.peak_halfwidth_hz);
+    out.movement_hz = pk.valid ? pk.hz : 0.0;
+    out.rhythm = pk.valid ? pk.fraction : 0.0;
 }
 
 GridPulseEstimate GridPulse::estimate() {
@@ -100,6 +153,9 @@ GridPulseEstimate GridPulse::estimate() {
     }
     have_score_ = true;
 
+    measure_movement(order, out);
+
+    out.refusal = GridPulseRefusal::no_peak;
     if (order.empty() || bin_hz == 0.0) return out;
 
     Spectrum combined;
@@ -117,8 +173,27 @@ GridPulseEstimate GridPulse::estimate() {
     for (std::size_t k : order) {
         if (std::fabs(info[k].peak_hz - pk.hz) <= config_.agree_hz) ++out.agreeing;
     }
-    out.believable = out.quality >= config_.min_quality && out.agreeing >= config_.min_agreeing &&
-                     pk.hz >= config_.min_hz + config_.edge_guard_hz;
+    bool at_movement_rate = false;
+    for (double m : {0.5, 1.0, 2.0}) {
+        if (out.movement_hz > 0.0 && std::fabs(pk.hz - m * out.movement_hz) <= config_.movement_match_hz) {
+            at_movement_rate = true;
+        }
+    }
+    const bool rhythmic = out.movement >= config_.rhythm_min_movement && out.rhythm >= config_.rhythm_limit;
+    if ((out.moving || rhythmic) && at_movement_rate) {
+        out.refusal = GridPulseRefusal::moving_at_pulse_rate;
+    } else if (out.moving) {
+        out.refusal = GridPulseRefusal::moving;
+    } else if (out.quality < config_.min_quality) {
+        out.refusal = GridPulseRefusal::weak_peak;
+    } else if (out.agreeing < config_.min_agreeing) {
+        out.refusal = GridPulseRefusal::few_agreeing;
+    } else if (pk.hz < config_.min_hz + config_.edge_guard_hz) {
+        out.refusal = GridPulseRefusal::near_band_edge;
+    } else {
+        out.refusal = GridPulseRefusal::none;
+    }
+    out.believable = out.refusal == GridPulseRefusal::none;
     return out;
 }
 

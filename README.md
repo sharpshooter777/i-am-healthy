@@ -121,6 +121,8 @@ ffmpeg -i session.mkv -vf format=rgb48le,scale=32:18:flags=area -f rawvideo -pix
 
 Each output line is: seconds into the stream, bpm, quality, agreeing blocks, skin blocks, verdict.
 
+A moving body has rhythms of its own: on a treadmill the camera read the runner's steps or strides as a pulse and believed it. So the estimate also measures movement from the same frames: how much the chosen blocks' brightness changes from frame to frame, and the strongest brightness rhythm over the whole frame. During strong movement no estimate is believed, and during moderate, regular movement none is believed at the movement's rate, half of it or double it. When the patient is still, the verdict is unchanged. The estimate reports the movement level, its rate and the reason for any refusal, so the monitor can show "patient moving" instead of a number.
+
 ### Combining sensors
 
 No single sensor is trusted alone. `core/fusion` applies five rules to every heart-rate source, strap or camera:
@@ -140,7 +142,7 @@ ffmpeg -i session.mkv -vf format=rgb48le,scale=32:18:flags=area -f rawvideo -pix
   ./build/linux-gcc/bin/session-replay --strap strap.raw --grid - --grid-start <clock time of the first frame, epoch seconds>
 ```
 
-Add `--strap-off <from s> <for s>` to withhold the strap for a stretch, as if it had fallen off: the monitor carries on with the camera, alarms held, and shows no number when the camera does not believe its own reading. The withheld strap readings score what the camera showed. `--quiet` prints the summary only. The same binary runs on QNX.
+Add `--strap-off <from s> <for s>` to withhold the strap for a stretch, as if it had fallen off: the monitor carries on with the camera, alarms held, and shows no number when the camera does not believe its own reading. The withheld strap readings score what the camera showed. `--quiet` prints the summary only. `--camera-log <file>` writes one line per camera estimate, with its movement measures and verdict. The same binary runs on QNX.
 
 No recording to hand? `session-replay synth strap.raw grid.raw` writes a made-up session (replay it with `--grid-start 1000000000`); the test suite does exactly that.
 

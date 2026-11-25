@@ -7,7 +7,7 @@
 //
 //   session-replay --strap <strap log> --grid <grid file|-> --grid-start <epoch s>
 //                  [--fps F] [--hop S] [--strap-off <from s> <for s>] [--quiet]
-//                  [--require-corroborated S] [--require-camera-alone S]
+//                  [--camera-log <file>] [--require-corroborated S] [--require-camera-alone S]
 //   session-replay synth <strap log> <grid file> [--seconds S] [--bpm B]
 //
 // The grid is the stream FFmpeg writes for grid-pulse (rgb48le, 32x18).
@@ -16,9 +16,12 @@
 // the strap for a stretch (seconds into the grid), as if it had fallen off;
 // the withheld readings are still used to score the camera. The --require
 // options make the exit code a test: at least that many seconds must have
-// been shown that way. `synth` writes a made-up session to replay: a steady
-// strap and a patch of skin with a pulse at the same rate, clock starting at
-// 1000000000.
+// been shown that way. --camera-log writes one line per camera estimate:
+// seconds into the grid, the strap's latest rate (shown or withheld), the
+// camera's rate, quality, agreeing blocks, movement, movement rate in Hz,
+// rhythm and the verdict (believed, or why not). `synth` writes a made-up
+// session to replay: a steady strap and a patch of skin with a pulse at the
+// same rate, clock starting at 1000000000.
 //
 // Research prototype. Not a medical device. Not for clinical decisions.
 #include <algorithm>
@@ -48,6 +51,7 @@ struct Options {
     double off_from_s = -1.0;
     double off_for_s = 0.0;
     bool quiet = false;
+    std::string camera_log;
     long require_corroborated = 0;
     long require_camera_alone = 0;
 };
@@ -58,7 +62,7 @@ void usage() {
     std::fprintf(stderr,
                  "usage: session-replay --strap <log> --grid <file|-> --grid-start <epoch s>\n"
                  "                      [--fps F] [--hop S] [--strap-off <from s> <for s>] [--quiet]\n"
-                 "                      [--require-corroborated S] [--require-camera-alone S]\n"
+                 "                      [--camera-log <file>] [--require-corroborated S] [--require-camera-alone S]\n"
                  "       session-replay synth <strap log> <grid file> [--seconds S] [--bpm B]\n");
 }
 
@@ -71,6 +75,7 @@ bool parse_args(int argc, char** argv, Options& o) {
             return true;
         };
         if (a == "--quiet") o.quiet = true;
+        else if (a == "--camera-log" && i + 1 < argc) o.camera_log = argv[++i];
         else if (a == "--strap" && i + 1 < argc) o.strap_path = argv[++i];
         else if (a == "--grid" && i + 1 < argc) o.grid_path = argv[++i];
         else if (a == "--grid-start") { if (!value(o.grid_start_s)) return false; }
@@ -232,6 +237,12 @@ int main(int argc, char** argv) {
         return o.off_from_s >= 0.0 && t_s >= o.off_from_s && t_s < o.off_from_s + o.off_for_s;
     };
 
+    std::FILE* log = o.camera_log.empty() ? nullptr : std::fopen(o.camera_log.c_str(), "w");
+    if (!o.camera_log.empty() && log == nullptr) {
+        std::fprintf(stderr, "session-replay: cannot write %s\n", o.camera_log.c_str());
+        if (grid != stdin) std::fclose(grid);
+        return 1;
+    }
     Tally tally;
     std::size_t next_strap = 0;
     // Start a little before the grid so the strap has a history when the first frame arrives.
@@ -260,6 +271,12 @@ int main(int argc, char** argv) {
                 next_second = static_cast<long>(std::floor(t)) + 1;  // judge from here on, not the warm-up
             }
             ++tally.camera_estimates;
+            if (log != nullptr) {
+                const core::GridPulseEstimate& e = monitor.last_camera();
+                std::fprintf(log, "%.1f %.1f %.1f %.3f %zu %.4f %.2f %.3f %s\n", t, have_hidden ? hidden_bpm : 0.0,
+                             e.bpm, e.quality, e.agreeing, e.movement, e.movement_hz, e.rhythm,
+                             core::to_string(e.refusal));
+            }
             if (monitor.last_camera().believable) {
                 ++tally.camera_believed;
                 const core::FusedHeartRate f = monitor.evaluate(t);
@@ -315,6 +332,7 @@ int main(int argc, char** argv) {
         }
     }
     if (grid != stdin) std::fclose(grid);
+    if (log != nullptr) std::fclose(log);
 
     if (tally.seconds == 0) {
         std::fprintf(stderr, "session-replay: the grid is shorter than the camera's first window\n");

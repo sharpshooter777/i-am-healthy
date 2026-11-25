@@ -149,6 +149,16 @@ Done Nov 24: first beta, strap and camera through the combining rules
 - Not yet: live camera frames on QNX into `HeartMonitor` (replay only so far), exercise footage, the C920 view.
 - `session-replay synth` writes a made-up session; three ctest cases replay it end to end (agreeing, and with the strap withheld). The `--require-...` options turn the exit code into the test.
 
+Done Nov 24: movement check
+
+- Problem: on two treadmill recordings (three camera views) the camera believed about three estimates in four while running, and none agreed with the strap: it read step or stride rate.
+- `GridPulse` now measures movement from the same frames: `movement` (RMS frame-to-frame change in relative brightness of the combined blocks) and `movement_hz` / `rhythm` (peak of the summed brightness spectra of all blocks, and its share of the 0.5 to 4.5 Hz band). Refused when `movement >= 0.02` whatever the rate, or when `movement >= 0.01`, `rhythm >= 0.40` and the pulse peak is within 0.1 Hz of the movement rate, half or double. Otherwise the verdict is exactly as before. `GridPulseEstimate` carries `movement`, `movement_hz`, `rhythm`, `moving` and `refusal` (why not believed; `to_string`). The evidence for each threshold is in the comment in `grid_pulse.hpp`.
+- Rule choice: during strong movement no believed estimate agreed with the strap on any run, so strong movement refuses at any rate. The rate-match part was needed only for the wide camera, where much of the running stayed under 0.02.
+- Results (believed / agreed; treadmill: believed and wrong as a share of all estimates): seated stretch 1 25/22 -> 24/22, stretch 2 31/30 -> 31/30. Treadmill Nov 23 wide 340 of 415 (82 %) -> 0; Nov 24 close 353 of 475 (74 %) -> 3 (0.6 %); Nov 24 wide 361 of 475 (76 %) -> 15 (3.2 %). None of these agreed with the strap, before or after.
+- `session-replay --camera-log <file>` writes one line per estimate with the movement measures and the reason. The log holds strap readings, so keep it out of the repository.
+- Tests use a made-up bobbing face (four bands of different colour and brightness). A plain one-colour patch does not reproduce the failure, because POS cancels pure brightness change.
+- Not solved: (1) on the wide Nov 24 view, ten wrong estimates sit just under both limits at stride rate; (2) five wrong estimates there, and one on the close view, come with almost no movement, during the stillness after running. That failure is not movement, and the check cannot catch it. (3) The thresholds come from one person, two cameras and one room. (4) The seated one-hour recording of Nov 24 was not available and is untested. (5) A real pulse during strong movement is thrown away by design.
+
 Next, for week 1:
 
 1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.
