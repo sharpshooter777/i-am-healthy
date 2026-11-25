@@ -6,6 +6,7 @@
 // heart-rate client: the first live input, read from hr-bridge.
 //
 // Research prototype. Not a medical device. Not for clinical decisions.
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -52,6 +53,8 @@ bool parse_hr_client(int argc, char** argv, vitals::vmcore::HrClientOptions& o) 
 }  // namespace
 
 int main(int argc, char** argv) {
+    // A line at a time, so the output can be followed live through a pipe or over ssh.
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
     if (argc == 2 && std::strcmp(argv[1], "--selftest") == 0) {
         return vitals::vmcore::run_selftest(std::cout) ? 0 : 1;
     }
