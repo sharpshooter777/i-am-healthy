@@ -118,3 +118,19 @@ TEST_CASE("heart monitor: both lost means no number") {
     CHECK(out.status == FusionStatus::no_source);
     CHECK(out.source == -1);
 }
+
+TEST_CASE("heart monitor: after lost frames the camera starts its window again") {
+    Session s;
+    s.run(60.0, 72.0, 0.004, 72, 1e9);
+    REQUIRE(s.monitor.evaluate(60.0).status == FusionStatus::corroborated);
+
+    s.monitor.camera_restart();
+    const GridPulseConfig& c = s.monitor.config().camera;
+    const std::size_t camera = static_cast<std::size_t>(s.monitor.camera_source());
+    // No new estimate until a whole window of unbroken frames has arrived.
+    s.run(60.0 + c.window_s - 1.0, 72.0, 0.004, 72, 1e9);
+    CHECK(s.monitor.evaluate(60.0 + c.window_s - 1.0).sources[camera].state == SourceState::stale);
+    CHECK(s.monitor.evaluate(60.0 + c.window_s - 1.0).status == FusionStatus::single);
+    s.run(60.0 + c.window_s + 6.0, 72.0, 0.004, 72, 1e9);
+    CHECK(s.monitor.evaluate(60.0 + c.window_s + 6.0).status == FusionStatus::corroborated);
+}

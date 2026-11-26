@@ -34,4 +34,9 @@ bool HeartMonitor::camera_frame(double t_s, const double* rgb, std::size_t count
     return true;
 }
 
+void HeartMonitor::camera_restart() {
+    grid_ = GridPulse(config_.camera);
+    frames_ = 0;
+}
+
 }  // namespace vitals::core

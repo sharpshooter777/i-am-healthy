@@ -5,6 +5,7 @@ add_executable(core_tests
     main.cpp
     core/test_dsp.cpp
     core/test_fusion.cpp
+    core/test_grid_line.cpp
     core/test_grid_pulse.cpp
     core/test_heart_monitor.cpp
     core/test_heart_rate.cpp
@@ -52,4 +53,13 @@ if(NOT CMAKE_CROSSCOMPILING)
                      --grid-start 1000000000 --quiet --strap-off 40 20 --require-camera-alone 10)
     set_tests_properties(session-replay-synth PROPERTIES FIXTURES_SETUP replay_session)
     set_tests_properties(session-replay-agree session-replay-strap-off PROPERTIES FIXTURES_REQUIRED replay_session)
+
+    # The same made-up session over the network path: both bridges replay it
+    # and vm-core reads strap and camera together.
+    if(UNIX)
+        add_test(NAME live-bridges
+                 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/e2e/live-bridges.sh $<TARGET_FILE_DIR:vm-core>
+                         replay-test-strap.raw replay-test-grid.raw)
+        set_tests_properties(live-bridges PROPERTIES FIXTURES_REQUIRED replay_session TIMEOUT 60)
+    endif()
 endif()

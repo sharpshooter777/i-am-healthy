@@ -38,6 +38,12 @@ public:
     // t_s. Returns true when this frame completed a new camera estimate.
     bool camera_frame(double t_s, const double* rgb, std::size_t count);
 
+    // Forgets the camera's frame history. Call it when frames were lost: the
+    // pulse is read from an unbroken run of evenly spaced frames, and a
+    // window with a hole in it would give a wrong rate with a straight face.
+    // The camera's last estimate stands until it goes stale in the usual way.
+    void camera_restart();
+
     // The combined reading as of t_s.
     FusedHeartRate evaluate(double t_s) const { return fusion_.evaluate(t_s); }
 
