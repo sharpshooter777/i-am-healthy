@@ -159,6 +159,17 @@ Done Nov 24: movement check
 - Tests use a made-up bobbing face (four bands of different colour and brightness). A plain one-colour patch does not reproduce the failure, because POS cancels pure brightness change.
 - Not solved: (1) on the wide Nov 24 view, ten wrong estimates sit just under both limits at stride rate; (2) five wrong estimates there, and one on the close view, come with almost no movement, during the stillness after running. That failure is not movement, and the check cannot catch it. (3) The thresholds come from one person, two cameras and one room. (4) The seated one-hour recording of Nov 24 was not available and is untested. (5) A real pulse during strong movement is thrown away by design.
 
+Done Nov 26: live camera frames into the monitor on QNX
+
+- `tools/grid-bridge` serves the camera's 32x18 colour grids over TCP (port 5601), one text line per frame (`core/grid_line`: `GR1 <seq> <t_ns> <cols> <rows> <hex>`). `follow` reads FFmpeg's raw grid stream from standard input, `replay` serves a saved one at its frame rate. `vm-core --hr-client <host> --grid <host>` connects out to both bridges and runs strap and camera through one `HeartMonitor`; both are timed by arrival on the QNX clock. One loop polls both sockets (camera first, 10 ms; strap 2 ms).
+- Frames carry a count. After lost frames or a new connection `HeartMonitor::camera_restart()` empties the camera window, because a window with a hole gives a wrong rate that can look believable. The camera's last estimate then goes stale in the usual way.
+- Tests: `core_tests` has the line format and the restart; ctest `live-bridges` (Unix only, `tests/e2e/live-bridges.sh`) replays the made-up session through both bridges at four times speed and requires 15 agreeing samples (`--require-corroborated`).
+- In the QNX VM, bridges on the laptop: made-up 90 s session, 2,671 frames, none lost, 30.00 frames/s as received, longest gap 41 ms, 60 of 90 samples corroborated. Ten minutes of the Nov 24 seated recording (minutes 10 to 20): 17,984 frames, none lost, longest gap 210 ms, 165 samples corroborated, 33 of 114 estimates believed. `session-replay` on Linux with the same data: 165 s corroborated, 33 of 115 believed, all 33 agreeing. The live path and the replay give the same answer.
+- Live C920 through FFmpeg into `grid-bridge follow`, 100 s, empty chair: 2,971 frames, none lost, 30.01 frames/s, longest gap 200 ms; 14 estimates, none believed (`weak_peak`), which is right for a picture with nobody in it.
+- The combined reading is still counted once per strap sample. With the strap gone and the camera carrying on, only the camera lines show it. A once-a-second evaluation belongs with the display and the supervisor.
+- Not yet: a session with a person in front of the live camera; recording the full video and feeding the grid from one capture (the C920 can be opened once: either one FFmpeg with two outputs, where a stalled bridge must not stop the recording, or read the growing file); Windows build of `grid-bridge` (written for it, stdin set to binary, untested); what happens when `connect` to an unreachable host blocks the loop.
+- The laptop's capture script must name the C920 by `/dev/v4l/by-id/...`: the `/dev/videoN` numbers change with what is plugged in (on Nov 26 `/dev/video2` was the built-in webcam).
+
 Next, for week 1:
 
 1. QNX IPC in `platform/`: native message passing and pulses, with a local-socket version for Linux and Windows.

@@ -23,7 +23,7 @@ Target: QNX 8.0, built with QNX SDP 8.0.5. Tested on the QNX Developer Desktop u
 | `platform/src/qnx/platform_qnx.cpp` | `clock_tick_ns()` | `ClockPeriod()` kernel call: the system tick that sets timer resolution |
 | `platform/src/qnx/platform_qnx.cpp` | `os_description()` | `uname()`. QNX 8.0.x reports 8.0.0 (QNXE-554) |
 | `platform/src/bsd/net_bsd.cpp` | `connect_tcp()`, `recv_some()`, `send_all()` | QNX's `io-sock` network stack through `libsocket`: `socket()`, `connect()`, `poll()`, `recv()`. The QNX side opens the connection outward, so it works from behind the VM's NAT |
-| `services/vm-core/hr_client.cpp` | `run_hr_client()` | Runs on QNX as `vm-core --hr-client <host>`: reads chest-strap heart rate sent by `hr-bridge` on another machine, times arrivals with `monotonic_ns()` (`ClockTime`), and marks a reading stale after three silent seconds |
+| `services/vm-core/hr_client.cpp` | `run_hr_client()` | Runs on QNX as `vm-core --hr-client <host> [--grid <host>]`: reads chest-strap heart rate sent by `hr-bridge` and camera frames sent by `grid-bridge` on another machine, times every arrival with `monotonic_ns()` (`ClockTime`) so both sources share the QNX clock, runs them through the heart monitor, marks the strap stale after three silent seconds, and restarts the camera window when the frame count shows lost frames |
 
 ## Output
 
@@ -40,16 +40,24 @@ self-test passed
 
 The signal processing in `core/` and the frame sources in `sources/` are portable C++17 and use no QNX-specific calls; they are built for QNX with the toolchain above and tested on the target.
 
-`vm-core --hr-client <host>` on the QNX target prints one line per heart-rate sample with its contact and interval checks and the source in use after the combining rules, then a summary with the arrival-gap statistics:
+`vm-core --hr-client <host> --grid <host>` on the QNX target prints one line per heart-rate sample with its contact and interval checks, one line per camera estimate with its verdict, and after each the source in use under the combining rules. The summary gives the arrival-gap statistics, the camera frames received and lost, and the frame rate as sent and as received:
 
 ```text
-hr-client: connected to <bridge-address>:5600 (qnx)
+hr-client: strap connected to <bridge-address>:5600 (qnx)
+hr-client: camera connected to <bridge-address>:5601 (qnx)
 hr  72 bpm  contact ok    rr 1 ok      | in use: chest strap, single source, alarms held
 ...
+cam  72.0 bpm  quality 0.78  agreeing 8  believed              | in use: chest strap, corroborated
+hr  72 bpm  contact ok    rr 1 ok      | in use: chest strap, corroborated
+...
 hr-client summary
-  samples           6
+  samples           90
   ...
+  camera frames     2671 (lost on the way 0, wrong size 0, unreadable 0)
+  camera frame rate 30.00/s as sent, 30.00/s as received, longest gap 41 ms
 ```
+
+(The example is the made-up 72 bpm test session, replayed through both bridges into the QEMU target.)
 
 ## Planned
 
